@@ -14,9 +14,17 @@ def _process(df: pd.DataFrame) -> pd.DataFrame:
     '''
     return df
 
-def _check(df: pd.DataFrame) -> None:
+def _pre_check(df: pd.DataFrame) -> None:
     '''
-    Check all required data are included in DMCO file. Raise an exception otherwise
+    Check all required data are included in file. Raise an exception otherwise.
+    Run on the file before any process.
+    '''
+    return
+
+def _post_check(df: pd.DataFrame)-> None:
+    '''
+    Check all required data are included in the processed Table. Raise an exception otherwise.
+    Run on the file after the process.
     '''
     return
 
@@ -29,5 +37,6 @@ def _read(bytes: bytes) -> pd.DataFrame:
 map = {'reading_function': _read,
     'required_columns': _required_columns,
     'processing_function': _process,
-    'check_function':_check,
+    'pre_check_function':_pre_check,
+    'post_check_function':_post_check,
     'natural_key':_NK}

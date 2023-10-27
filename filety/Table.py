@@ -18,7 +18,8 @@ class FileCategory(UserString):
                 .format(value, ', '.join(file_categories_set)))
         super().__init__(value)
         self._processing_function = file_categories_map[value]['processing_function']
-        self._check_function = file_categories_map[value]['check_function']
+        self._pre_check_function = file_categories_map[value]['pre_check_function']
+        self._post_check_function = file_categories_map[value]['post_check_function']
         self._required_columns = file_categories_map[value]['required_columns']
         self._natural_key = file_categories_map[value]['natural_key']
         self._reading_function = file_categories_map[value]['reading_function']
@@ -35,8 +36,11 @@ class FileCategory(UserString):
     def get_processing_function(self) -> Callable[[pd.DataFrame], pd.DataFrame]:
         return self._processing_function
         
-    def get_check_function(self) -> Callable[[pd.DataFrame], None]:
-        return self._check_function
+    def get_pre_check_function(self) -> Callable[[pd.DataFrame], None]:
+        return self._pre_check_functionù
+
+    def get_post_check_function(self) -> Callable[[pd.DataFrame], None]:
+        return self._post_check_function
 
     def get_required_columns(self) -> set:
         return self._required_columns
@@ -90,14 +94,18 @@ class Table:
         df = FileCategory(category).get_reading_function()(bytes)
         return Table(name=name, category=category, df=df)
 
+    def pre_check(self)-> None:
+        df = self.get_DataFrame()
+        self.get_category().get_pre_check_function()(df)
+
     def process(self)-> None:
         df = self.get_DataFrame()
         processed_df = self.get_category().get_processing_function()(df)
         self.set_DataFrame(processed_df)
     
-    def check(self)-> None:
+    def post_check(self)-> None:
         df = self.get_DataFrame()
-        self.get_category().get_check_function()(df)
+        self.get_category().get_post_check_function()(df)
 
     def select_columns(self, columns: Set[str]) -> None:
         '''
@@ -161,5 +169,16 @@ class Table:
         other_category = other.get_category()
         if self_category != other_category:
             raise Exception(f'Trying to add two tables with different categories: {self_category}, {other_category}.')
-        df = pd.concat([self.get_DataFrame(), other.get_DataFrame()], axis='index').drop_duplicates()
-        return Table(name = self.get_name() + '+' + other.get_name(), category=self_category, df=df)
+        self_df = self.get_DataFrame()
+        self_name = self.get_name()
+        other_df = other.get_DataFrame()
+        other_name = other.get_name()
+
+        df = pd.concat([self_df, other_df], axis='index')
+
+        # check for not overlapping
+        if len(self_df.drop_duplicates()) + len(other_df.drop_duplicates()) > len(df.drop_duplicates()):
+            message = f'The two tables "{self_name}" and "{other_name}" share some rows. This is likely to mean that duplicates would have been uploaded.'
+            raise exceptions.DataException(message)
+        
+        return Table(name = self_name + '+' + other_name, category=self_category, df=df)
