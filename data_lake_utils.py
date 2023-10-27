@@ -57,24 +57,28 @@ def delete_files(file_system_client: dl.FileSystemClient, path: str) -> None:
     f_utils.info('The directory "{}" has been cleaned.'.format(path))
     return
 
-def backup_files(file_system_client: dl.FileSystemClient, source_dir: str, sink_dir: str) -> None:
+def backup_files(file_system_client: dl.FileSystemClient, source_dir: str, sink_dir: str, hierarchy: str='Ymd') -> None:
     '''
-    Create the directory YYYY-mm-dd in the specified sink_dir, and perform a back-up of the specified directory, appending the timestamp to the name of each file.
+    Create the directory YYYY-mm-dd (according to hierarchy) in the specified sink_dir, and perform a back-up of the specified directory, appending the timestamp to the name of each file.
+    in hierarchy, include 'Y' if you want to add a year-level parent; 'm' for the month-level parent; 'd' for the day-level parent.
     '''
     path = source_dir + '/'
     timestamp = dt.datetime.now(timezone('Europe/Rome'))
-    year_string = timestamp.strftime('%Y')
-    month_string = timestamp.strftime('%Y-%m')
-    date_string = timestamp.strftime('%Y-%m-%d')
+    sink_path = sink_dir
+    if 'Y' in hierarchy:
+        sink_path = os.path.join(sink_path, timestamp.strftime('%Y'))
+    if 'm' in hierarchy:
+        sink_path = os.path.join(sink_path, timestamp.strftime('%Y-%m'))
+    if 'd' in hierarchy:
+        sink_path = os.path.join(sink_path, timestamp.strftime('%Y-%m-%d'))
     datetime_string = timestamp.strftime('%Y-%m-%dT%H:%M:%S')
     # copy-paste the content of the input folder in the day directory
     file_bytes_dict = collect_file_bytes(file_system_client=file_system_client, path=path)
     for full_name, file_bytes in file_bytes_dict.items():
         file_name, extension = os.path.splitext(full_name)
-        period_file_client = file_system_client.create_file('/'.join([sink_dir, year_string, month_string, date_string, file_name + '-' + datetime_string + extension]))
+        period_file_client = file_system_client.create_file(os.path.join(sink_path, file_name + '-' + datetime_string + extension))
         period_file_client.upload_data(file_bytes, overwrite=True)
-    f_utils.info('Input raw files have been pasted into the directory "{}/{}".'\
-        .format(sink_dir,date_string))
+    f_utils.info(f'Input raw files have been pasted into the directory "{sink_path}".')
     return
 
 def backup_splitted_df(file_system_client: dl.FileSystemClient, columns: List[str], df: pd.DataFrame, dir: str, file_name: str) -> None:
