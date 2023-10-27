@@ -4,7 +4,7 @@ from azure.identity import ManagedIdentityCredential, InteractiveBrowserCredenti
 from custom_package import azure_function_utils as f_utils, dataframe_utils as df_utils
 import datetime as dt
 from pytz import timezone
-from typing import List, Dict, Union, Tuple
+from typing import List
 import pandas as pd
 
 def get_container(storage_account_name: str, container_name: str) -> dl.FileSystemClient:
@@ -80,22 +80,15 @@ def backup_files(file_system_client: dl.FileSystemClient, source_dir: str, sink_
 def backup_splitted_df(file_system_client: dl.FileSystemClient, columns: List[str], df: pd.DataFrame, dir: str, file_name: str) -> None:
     '''
     split the dataframe by the specified columns and save the result as csv's in the specified dir, in the path built according to columns
-    '''
+    '''    
+    timestamp = dt.datetime.now(timezone('Europe/Rome')).strftime('%Y-%m-%dT%H:%M:%S')
     sink_directory_client = file_system_client.get_directory_client(dir)
     if not sink_directory_client.exists():
         sink_directory_client.create_directory()
     split_dict = df_utils.split_by_columns(df, columns)
     for k, v in split_dict.items():
         base_name = '/'.join(k) + '/' + file_name
-        # manage multiple copies
-        found = True
-        i = 0
-        while found:
-            file_client = sink_directory_client.get_file_client(f'{base_name}-v{i}.csv')
-            if file_client.exists():
-                i += 1
-            else:
-                found = False
-        file_client.create_file()
-        file_client.upload_data(v.to_csv(na_rep='NULL', index=False).encode(), overwrite=True)
+    file_client = sink_directory_client.get_file_client(f'{base_name}-{timestamp}.csv')
+    file_client.create_file()
+    file_client.upload_data(v.to_csv(na_rep='NULL', index=False).encode(), overwrite=True)
     return
