@@ -1,12 +1,14 @@
 from __future__ import annotations
-import exceptions, dataframe_utils as df_utils
-from custom_package.filety.categories import file_categories_map
+from custom_package import exceptions, dataframe_utils as df_utils
 import pandas as pd
-from collections import UserString, OrderedDict
-from typing import Callable, Set, List, Union
-import io
+from collections import UserString
+from typing import Callable, Set, List
+from importlib import import_module
+import glob
+import os
+from custom_package.filety.categories import file_categories_map
 
-file_categories_set = set(file_categories_map.keys())# file_categories_map.keys())
+file_categories_set = set(file_categories_map.keys())
 
 class FileCategory(UserString):
 

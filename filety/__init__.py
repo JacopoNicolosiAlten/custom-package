@@ -1,1 +1,1 @@
-from custom_package.filety.Table import Table, FileCategory
+from custom_package.filety.Table import Table, FileCategory, initialize_categories

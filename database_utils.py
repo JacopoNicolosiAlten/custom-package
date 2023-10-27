@@ -9,7 +9,7 @@ def connect_DB(server_name: str, database_name: str) -> pyodbc.Connection:
             + 'Authentication=ActiveDirectoryMsi;TrustServerCertificate=Yes')
     return cnxn
 
-def execute_query(cnxn, query):
+def execute_query(cnxn: pyodbc.Connection, query: str)-> pd.DataFrame:
     with cnxn.cursor() as cursor:
         cursor.execute(query)
         rows = cursor.fetchall()
