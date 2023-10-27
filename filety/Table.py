@@ -1,18 +1,12 @@
 from __future__ import annotations
-from custom_package import cobol_utils, exceptions, dataframe_utils as df_utils
-from custom_package.filety import categories
+import exceptions, dataframe_utils as df_utils
+from custom_package.filety.categories import file_categories_map
 import pandas as pd
 from collections import UserString, OrderedDict
 from typing import Callable, Set, List, Union
 import io
 
-file_categories_map = {'DMCO': categories.DMCO.map,
-    'TMCO': categories.TMCO.map,
-    'S1cail': categories.S1cail.map,
-    'SALBLIQ': categories.SALBLIQ.map,
-    'scheda_fondo': categories.scheda_fondo.map}
-
-file_categories_set = set(file_categories_map.keys())
+file_categories_set = set(file_categories_map.keys())# file_categories_map.keys())
 
 class FileCategory(UserString):
 

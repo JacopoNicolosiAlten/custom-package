@@ -1,1 +1,0 @@
-from custom_package.filety.categories import DMCO, TMCO, S1cail, SALBLIQ, scheda_fondo
