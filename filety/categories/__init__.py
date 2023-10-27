@@ -6,5 +6,6 @@ _relative_path = os.path.join('custom_package', 'filety', 'categories')
 for category_path in glob.glob(os.path.join(_relative_path, '**.py'), recursive=True):
     if '__init__.py' not in category_path:
         category = os.path.basename(category_path).split('.')[0]
-        module = import_module('.' + category, _relative_path.replace(os.path.sep, '.'))
-        file_categories_map[category] = getattr(module, 'map')
+        if category != 'category_template':
+            module = import_module('.' + category, _relative_path.replace(os.path.sep, '.'))
+            file_categories_map[category] = getattr(module, 'map')
