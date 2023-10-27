@@ -144,9 +144,10 @@ class Table:
         '''
         try:
             self.select_required_columns()
+            self.pre_check()
             self.process()
             self.check_NK()
-            self.check()
+            self.post_check()
         except exceptions.DataException as e:
             message = f'I controlli sul file "{self.get_name()}" hanno prodotto il seguente errore.\n'\
                 + e.message

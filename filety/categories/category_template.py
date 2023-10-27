@@ -6,7 +6,7 @@ The categoty/__init__.py should create a dictionary of all the categories maps, 
 import pandas as pd
 
 _required_columns: set[str] = {}
-_NK: list[str] = []
+_NK: list[str] = [] # natural key after the processing phase
 
 def _process(df: pd.DataFrame) -> pd.DataFrame:
     '''
