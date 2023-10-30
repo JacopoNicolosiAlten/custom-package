@@ -1,9 +1,13 @@
 import json
 import datetime
 import logging
-import io
+import io, os
 from pytz import timezone
 import azure.functions as func
+import tempfile
+from typing import Dict, Any
+
+_params_path = os.path.join(tempfile.gettempdir(), 'parameters.json')
 
 def initialize_logger(stream: io.StringIO) -> None:
     '''
@@ -39,16 +43,42 @@ def fail_out(error: str) -> str:
             'datetime': datetime.datetime.now(timezone('Europe/Rome'))\
                 .strftime('%Y-%m-%d %H:%M:%S')})
 
-def get_params(req: func.HttpRequest, required_params: set) -> dict:
+def get_input(req: func.HttpRequest, required_input: set) -> dict:
     '''
-    Check that the body of the http request contains all the tags included in the set required_params, and return the corresponding dictionary
+    Check that the body of the http request contains all the tags included in the set required_input, and return the corresponding dictionary
     '''
     try:
         req_body = req.get_json()
     except ValueError:
         raise Exception("Unable to decode json body.")
-    missing_params = required_params.difference(set(req_body.keys()))
+    missing_params = required_input.difference(set(req_body.keys()))
     if len(missing_params) > 0:
         raise Exception("The following required parameters are missing. {}."\
             .format(', '.join(missing_params)))
     return req_body
+
+def initialize_params(req: func.HttpRequest, required_params: set={}, default_params: Dict[str, Any]=dict())-> None:
+    '''
+    save the parameters of the request in the temp file 
+    '''
+    params = {k: json.loads(v) for k, v in req.params.items()}
+    for k, v in default_params.items():
+        if k not in params.keys():
+            params[k]=v
+    missing_parameters = required_params.difference(set(params.keys()))
+    if len(missing_parameters)>0:
+        raise Exception(f'Missing parameters: {", ".join(missing_parameters)}.')
+    with open(_params_path, 'w') as file:
+        json.dump(params, file)
+        info(json.dumps(params))
+    return
+
+def get_param(name: str)-> Any:
+    '''
+    get the parameter from the initialized paramters file
+    '''
+    with open(_params_path, 'r') as file:
+        params: Dict[str, Any] = json.load(file)
+    if name not in params.keys():
+        raise Exception(f'The parameter "{name}" could not be found.')
+    return params[name]
