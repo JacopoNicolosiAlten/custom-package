@@ -1,6 +1,7 @@
 **__pycache__**
 
 variables.py
+utils.py
 
 filety/categories/**
 !filety/categories/__init__.py
