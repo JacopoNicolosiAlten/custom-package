@@ -1,5 +1,4 @@
 import paramiko
-import io
 import datetime
 from typing import Dict
 from pytz import timezone
