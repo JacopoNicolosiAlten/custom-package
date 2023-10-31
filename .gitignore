@@ -3,6 +3,4 @@
 variables.py
 utils.py
 
-filety/categories/**
-!filety/categories/__init__.py
-!filety/categories/category_template.py
+filety/categories/spec
