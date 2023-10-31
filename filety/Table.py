@@ -93,6 +93,14 @@ class Table:
         '''
         df = FileCategory(category).get_reading_function()(bytes)
         return Table(name=name, category=category, df=df)
+    
+    @staticmethod
+    def get_empty_table(category: str)-> Table:
+        '''
+        return an instance of a Table with empty DataFrame
+        '''
+        df = pd.DataFrame([], columns=FileCategory(category).get_required_columns())
+        return Table(name=f'empty-{category}', category=category, df=df)
 
     def pre_check(self)-> None:
         df = self.get_DataFrame()
