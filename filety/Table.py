@@ -1,11 +1,8 @@
 from __future__ import annotations
-from custom_package import exceptions, dataframe_utils as df_utils
+from custom_package import exceptions, dataframe_utils as df_utils, azure_function_utils as f_utils
 import pandas as pd
 from collections import UserString
 from typing import Callable, Set, List
-from importlib import import_module
-import glob
-import os
 from custom_package.filety.categories import file_categories_map
 
 file_categories_set = set(file_categories_map.keys())
@@ -17,7 +14,7 @@ class FileCategory(UserString):
             raise TypeError('The value {} is not an acceptable file category. Specify one of {}'\
                 .format(value, ', '.join(file_categories_set)))
         super().__init__(value)
-        self._processing_function = file_categories_map[value]['processing_function']
+        self._transformation = file_categories_map[value]['transformation']
         self._pre_check_function = file_categories_map[value]['pre_check_function']
         self._post_check_function = file_categories_map[value]['post_check_function']
         self._required_columns = file_categories_map[value]['required_columns']
@@ -33,11 +30,11 @@ class FileCategory(UserString):
     def get_reading_function(self) -> Callable[[bytes], pd.DataFrame]:
         return self._reading_function
     
-    def get_processing_function(self) -> Callable[[pd.DataFrame], pd.DataFrame]:
-        return self._processing_function
+    def get_transformation(self) -> Callable[[pd.DataFrame], pd.DataFrame]:
+        return self._transformation
         
     def get_pre_check_function(self) -> Callable[[pd.DataFrame], None]:
-        return self._pre_check_functionù
+        return self._pre_check_function
 
     def get_post_check_function(self) -> Callable[[pd.DataFrame], None]:
         return self._post_check_function
@@ -99,21 +96,36 @@ class Table:
         '''
         return an instance of a Table with empty DataFrame
         '''
-        df = pd.DataFrame([], columns=FileCategory(category).get_required_columns())
+        df = pd.DataFrame([], columns=FileCategory(category).get_required_columns)
         return Table(name=f'empty-{category}', category=category, df=df)
+    
+    def raise_error(self, exception: Exception)-> None:
+        if isinstance(exception, exceptions.DataException):
+            exception.message = f'The following error has been raised when processing "{self.get_name()}".\n' + exception.message
+            raise exception        
+        else:
+            raise exception
 
     def pre_check(self)-> None:
         df = self.get_DataFrame()
-        self.get_category().get_pre_check_function()(df)
+        try:
+            self.get_category().get_pre_check_function()(df)
+        except Exception as e:
+            self.raise_error(e)
+        return
 
-    def process(self)-> None:
+    def transform(self)-> None:
         df = self.get_DataFrame()
-        processed_df = self.get_category().get_processing_function()(df)
+        processed_df = self.get_category().get_transformation()(df)
         self.set_DataFrame(processed_df)
     
     def post_check(self)-> None:
         df = self.get_DataFrame()
-        self.get_category().get_post_check_function()(df)
+        try:
+            self.get_category().get_post_check_function()(df)
+        except Exception as e:
+            self.raise_error(e)
+        return
 
     def select_columns(self, columns: Set[str]) -> None:
         '''
@@ -143,17 +155,20 @@ class Table:
         NK = self.get_category().get_NK()
         if len(NK) == 0:
             return
-        df_utils.check_multiple_NK(df=df, NK=NK)
+        try:
+            df_utils.check_multiple_NK(df=df, NK=NK)
+        except Exception as e:
+            self.raise_error(e)
         return
     
-    def process_check(self)-> None:
+    def process(self)-> None:
         '''
         Perform all required ops on the table to prepare it
         '''
         try:
             self.select_required_columns()
             self.pre_check()
-            self.process()
+            self.transform()
             self.check_NK()
             self.post_check()
         except exceptions.DataException as e:

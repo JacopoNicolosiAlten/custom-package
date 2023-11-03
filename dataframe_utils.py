@@ -1,11 +1,6 @@
 import pandas as pd
 from typing import List, Dict, Tuple
-
-class NKException(Exception):
-
-    def __init__(self, message: str) -> None:
-        super().__init__(message)
-        self.message = message
+from custom_package import exceptions
 
 def check_multiple_NK(df: pd.DataFrame, NK: List[str]) -> None:
     blank_NK = df[df[NK].isna().any(axis='columns')]
@@ -13,7 +8,7 @@ def check_multiple_NK(df: pd.DataFrame, NK: List[str]) -> None:
         message = f'There are {len(blank_NK)} rows with a blank value among "'\
             + '", "'.join(NK)\
             + '". This is not allowed because they are used as the key identifier.'
-        raise NKException(message)
+        raise exceptions.DataException(message)
     NK_check = df.groupby(NK).size().rename('Count').reset_index(drop=False)
     NK_check.query('Count > 1', inplace=True)
     if len(NK_check) > 0:
@@ -21,7 +16,7 @@ def check_multiple_NK(df: pd.DataFrame, NK: List[str]) -> None:
             + '"/"'.join(NK)\
             + '". This is not allowed because they are used as the key identifier.\n'\
             + ('\t' + NK_check[NK].apply(lambda r: '/'.join(r.tolist()), axis='columns') + ': ' + NK_check['Count'].astype(str) + ' rows.\n').sum()
-        raise NKException(message)
+        raise exceptions.DataException(message)
     return
 
 

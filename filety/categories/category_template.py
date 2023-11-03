@@ -8,9 +8,9 @@ import pandas as pd
 _required_columns: set[str] = {}
 _NK: list[str] = [] # natural key after the processing phase
 
-def _process(df: pd.DataFrame) -> pd.DataFrame:
+def _transform(df: pd.DataFrame) -> pd.DataFrame:
     '''
-    Return the processed dataframe of a table classified as DMCO.
+    Return the transformed dataframe of the table.
     '''
     return df
 
@@ -36,7 +36,7 @@ def _read(bytes: bytes) -> pd.DataFrame:
 
 map = {'reading_function': _read,
     'required_columns': _required_columns,
-    'processing_function': _process,
+    'transformation': _transform,
     'pre_check_function':_pre_check,
     'post_check_function':_post_check,
     'natural_key':_NK}
