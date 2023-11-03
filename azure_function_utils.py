@@ -59,9 +59,12 @@ def get_input(req: func.HttpRequest, required_input: set) -> dict:
 
 def initialize_params(req: func.HttpRequest, required_params: set={}, default_params: Dict[str, Any]=dict())-> None:
     '''
-    save the parameters of the request in the temp file 
+    save the parameters of the request in the temp file form the body
     '''
-    params = {k: json.loads(v) for k, v in req.params.items()}
+    try:
+        params = req.get_json()
+    except ValueError:
+        raise Exception("Unable to decode json body.")
     for k, v in default_params.items():
         if k not in params.keys():
             params[k]=v
