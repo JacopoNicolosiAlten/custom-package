@@ -1,6 +1,7 @@
 from __future__ import annotations
 from custom_package import exceptions, dataframe_utils as df_utils, azure_function_utils as f_utils
 import pandas as pd
+import io
 from collections import UserString
 from typing import Callable, Set, List
 from custom_package.filety.categories import file_categories_map
@@ -81,7 +82,7 @@ class Table:
         return csv bytes of the Table
         '''
         df = self.get_DataFrame()
-        return df.to_csv(na_rep='', index=False).encode()
+        return df.to_csv(na_rep='NULL', index=False).encode()
     
     @staticmethod
     def read(name: str, bytes: bytes, category: str)-> Table:
@@ -96,8 +97,13 @@ class Table:
         '''
         return an instance of a Table with empty DataFrame
         '''
-        df = pd.DataFrame([], columns=FileCategory(category).get_required_columns)
+        df = pd.DataFrame([], columns=list(FileCategory(category).get_required_columns()))
         return Table(name=f'empty-{category}', category=category, df=df)
+    
+    @staticmethod
+    def from_csv_bytes(name: str, category: str, bytes: bytes)-> Table:
+        df = pd.read_csv(io.BytesIO(bytes), na_values='NULL')
+        return Table(name=name, category=category, df=df)
     
     def raise_error(self, exception: Exception)-> None:
         if isinstance(exception, exceptions.DataException):
