@@ -177,10 +177,11 @@ class Table:
             raise exceptions.DataException(message)
         return
     
-    def copy(self, name: str)-> Table:
+    def copy(self, name: str=None)-> Table:
         '''
         Return a deep-copy of the Table
         '''
+        name = name if name is not None else self.get_name()
         df = self.get_DataFrame()
         category = self.get_category()
         return Table(name=name, category=category, df=df)
