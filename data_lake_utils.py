@@ -92,7 +92,7 @@ def backup_splitted_df(file_system_client: dl.FileSystemClient, columns: List[st
     split_dict = df_utils.split_by_columns(df, columns)
     for k, v in split_dict.items():
         base_name = '/'.join(k) + '/' + file_name
-    file_client = sink_directory_client.get_file_client(f'{base_name}-{timestamp}.csv')
-    file_client.create_file()
-    file_client.upload_data(v.to_csv(na_rep='NULL', index=False).encode(), overwrite=True)
+        file_client = sink_directory_client.get_file_client(f'{base_name}-{timestamp}.csv')
+        file_client.create_file()
+        file_client.upload_data(v.to_csv(na_rep='NULL', index=False).encode(), overwrite=True)
     return
