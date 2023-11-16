@@ -47,7 +47,7 @@ class FileCategory(UserString):
         return self._natural_key
     
     def has_period(self) -> bool:
-        return 'Period' in self.get_required_columns()
+        return 'period' in self.get_required_columns()
 
 class Table:
 

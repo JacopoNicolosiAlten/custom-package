@@ -38,5 +38,5 @@ def split_by_columns(df: pd.DataFrame, columns: List[str]) -> Dict[Tuple[str], p
     for c in columns:
         if c not in df.columns:
             raise KeyError(f'Trying to split a dataframe according to "{c}", which does not match any of its columns.')
-        res = {k + (c + ':' + split,): df for k, v in res.items() for split, df in v.groupby(c)}
+        res = {k + (c + ':' + str(split),): df for k, v in res.items() for split, df in v.groupby(c)}
     return res
