@@ -102,7 +102,7 @@ class Table:
     
     @staticmethod
     def from_csv_bytes(name: str, category: str, bytes: bytes)-> Table:
-        df = pd.read_csv(io.BytesIO(bytes), na_values='NULL')
+        df = pd.read_csv(io.BytesIO(bytes), na_values='NULL', dtype=str)
         return Table(name=name, category=category, df=df)
     
     def raise_error(self, exception: Exception)-> None:
