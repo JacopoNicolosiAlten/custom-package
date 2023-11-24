@@ -73,7 +73,6 @@ def initialize_params(req: func.HttpRequest, required_params: set={}, default_pa
         raise Exception(f'Missing parameters: {", ".join(missing_parameters)}.')
     with open(_params_path, 'w') as file:
         json.dump(params, file)
-        info(json.dumps(params))
     return
 
 def get_param(name: str)-> Any:
