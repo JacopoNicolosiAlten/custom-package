@@ -3,19 +3,13 @@ import os
 import pandas as pd
 
 def connect_DB(server_name: str, database_name: str) -> pyodbc.Connection:
-    #if os.getenv("MSI_SECRET"):
-    #    cnxn = pyodbc.connect('DRIVER={ODBC Driver 17 for SQL Server};'
-    #            + 'SERVER={};'.format(server_name)
-    #            + 'DATABASE={};'.format(database_name)
-    #            + 'Authentication=ActiveDirectoryMsi')
-    #else:
-    password = os.getenv('DBpassword')
-    username = 'agresso-adm'
-    driver = '{ODBC Driver 17 for SQL Server}' if os.getenv("MSI_SECRET") else '{SQL Server}'
-    cnxn = pyodbc.connect('DRIVER={};'.format(driver)
-        + 'SERVER={};'.format(server_name)
-        + 'DATABASE={};'.format(database_name)
-        + 'UID={};PWD={}'.format(username, password))
+    connection_string = r'DRIVER={ODBC Driver 17 for SQL Server};' + 'SERVER={};DATABASE={};'.format(server_name, database_name)
+    if os.getenv("MSI_SECRET"):
+        connection_string += 'Authentication=ActiveDirectoryMsi;'
+    else:
+        pw = os.getenv('DBpassword')
+        connection_string += 'UID=agresso-adm;PWD={}'.format(pw)
+    cnxn = pyodbc.connect(connection_string)
     return cnxn
 
 def execute_query(cnxn: pyodbc.Connection, query: str)-> pd.DataFrame:
