@@ -57,12 +57,11 @@ def delete_files(file_system_client: dl.FileSystemClient, path: str) -> None:
     f_utils.info('The directory "{}" has been cleaned.'.format(path))
     return
 
-def backup_files(file_system_client: dl.FileSystemClient, source_dir: str, sink_dir: str, hierarchy: str='Ymd') -> None:
+def backup_files(file_system_client: dl.FileSystemClient, path: str, sink_dir: str, hierarchy: str='Ymd') -> None:
     '''
-    Create the directory YYYY-mm-dd (according to hierarchy) in the specified sink_dir, and perform a back-up of the specified directory, appending the timestamp to the name of each file.
+    Create the directory YYYY-mm-dd (according to hierarchy) in the specified sink_dir, and perform a back-up of the files that match the prefix path, appending the timestamp to the name of each file.
     in hierarchy, include 'Y' if you want to add a year-level parent; 'm' for the month-level parent; 'd' for the day-level parent.
     '''
-    path = source_dir + '/'
     timestamp = dt.datetime.now(timezone('Europe/Rome'))
     sink_path = sink_dir
     if 'Y' in hierarchy:
