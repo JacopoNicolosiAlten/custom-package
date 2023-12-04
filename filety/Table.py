@@ -3,10 +3,19 @@ from custom_package import exceptions, dataframe_utils as df_utils, azure_functi
 import pandas as pd
 import io
 from collections import UserString
-from typing import Callable, Set, List
+from typing import Callable, Set, List, Dict
 from custom_package.filety.categories import file_categories_map
+from custom_package.filety import DataType as dt
 
 file_categories_set = set(file_categories_map.keys())
+
+def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType])-> bool:
+        not_consistent_df = ~df.transform({c: d.is_consistent for (c, d) in data_types.items()}, axis='index')
+        not_consistent_columns = not_consistent_df.columns[not_consistent_df.any(axis='index')].tolist()
+        for c in not_consistent_columns:
+            msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + (df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '; ').sum()
+            f_utils.warning(msg)
+        return not not_consistent_df.any(axis=None)
 
 class FileCategory(UserString):
 
@@ -18,7 +27,7 @@ class FileCategory(UserString):
         self._transformation = file_categories_map[value]['transformation']
         self._pre_check_function = file_categories_map[value]['pre_check_function']
         self._post_check_function = file_categories_map[value]['post_check_function']
-        self._required_columns = file_categories_map[value]['required_columns']
+        self._columns = file_categories_map[value]['columns']
         self._natural_key = file_categories_map[value]['natural_key']
         self._reading_function = file_categories_map[value]['reading_function']
 
@@ -39,9 +48,12 @@ class FileCategory(UserString):
 
     def get_post_check_function(self) -> Callable[[pd.DataFrame], None]:
         return self._post_check_function
+    
+    def get_data_types(self)-> Dict[str, dt.DataType]:
+        return self._columns
 
     def get_required_columns(self) -> set:
-        return self._required_columns
+        return set(self._columns.keys())
     
     def get_NK(self) -> List[str]:
         return self._natural_key
@@ -104,6 +116,20 @@ class Table:
     def from_csv_bytes(name: str, category: str, bytes: bytes)-> Table:
         df = pd.read_csv(io.BytesIO(bytes), na_values='NULL', dtype=str)
         return Table(name=name, category=category, df=df)
+    
+    def set_data_types(self, remediate: bool)-> None:
+        df = self.get_DataFrame()
+        data_types = self.get_category().get_data_types()
+        consistency = _data_types_check_step(df=df, data_types=data_types)
+        if remediate and not consistency:
+            f_utils.info('A remediation attempt will be performed.')
+            df = df.transform({c: d.remediate for (c, d) in data_types.items()}, axis='index').copy()
+            consistency = _data_types_check_step(df=df, data_types=data_types)
+        if not consistency:
+            raise exceptions.DataException('Unable to set the correct data types.')
+        converted_df = df.astype({c: d.dtype for (c, d) in data_types.items()})
+        self.set_DataFrame(converted_df)
+        return
     
     def raise_error(self, exception: Exception)-> None:
         if isinstance(exception, exceptions.DataException):
@@ -173,6 +199,7 @@ class Table:
         '''
         try:
             self.select_required_columns()
+            self.set_data_types()
             self.pre_check()
             self.transform()
             self.check_NK()
