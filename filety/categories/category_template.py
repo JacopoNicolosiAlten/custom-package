@@ -4,8 +4,10 @@ The categoty/__init__.py should create a dictionary of all the categories maps, 
 '''
 
 import pandas as pd
+from custom_package.filety import DataType as dt
+from typing import Dict
 
-_required_columns: set[str] = {}
+_columns: Dict[str, dt.DataType] = dict()
 _NK: list[str] = [] # natural key after the processing phase
 
 def _transform(df: pd.DataFrame) -> pd.DataFrame:
@@ -35,7 +37,7 @@ def _read(bytes: bytes) -> pd.DataFrame:
     return pd.DataFrame({})
 
 map = {'reading_function': _read,
-    'required_columns': _required_columns,
+    'columns': _columns,
     'transformation': _transform,
     'pre_check_function':_pre_check,
     'post_check_function':_post_check,

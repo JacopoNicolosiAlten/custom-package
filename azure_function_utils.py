@@ -15,6 +15,7 @@ def initialize_logger(stream: io.StringIO) -> None:
     '''
     logger = logging.getLogger('logger')
     logger.addHandler(logging.StreamHandler(stream))
+    logger.setLevel('INFO')
 
 def warning(message: str) -> None:
     logging.getLogger('logger').warning(message)
