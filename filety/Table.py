@@ -13,7 +13,7 @@ def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType])
         not_consistent_df = ~df.transform({c: d.is_consistent for (c, d) in data_types.items()}, axis='index')
         not_consistent_columns = not_consistent_df.columns[not_consistent_df.any(axis='index')].tolist()
         for c in not_consistent_columns:
-            msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + (df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '; ').sum()
+            msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + ('"' + df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '"; ').sum()
             f_utils.warning(msg)
         return not not_consistent_df.any(axis=None)
 
@@ -123,10 +123,11 @@ class Table:
         consistency = _data_types_check_step(df=df, data_types=data_types)
         if remediate and not consistency:
             f_utils.info('A remediation attempt will be performed.')
-            df = df.transform({c: d.remediate for (c, d) in data_types.items()}, axis='index').copy()
+            df = df.transform({c: d.remediate for (c, d) in data_types.items()}, axis='index')
             consistency = _data_types_check_step(df=df, data_types=data_types)
         if not consistency:
             raise exceptions.DataException('Unable to set the correct data types.')
+        df = df.transform({c: d.convert for (c, d) in data_types.items()}, axis='index')
         converted_df = df.astype({c: d.dtype for (c, d) in data_types.items()})
         self.set_DataFrame(converted_df)
         return
@@ -193,13 +194,13 @@ class Table:
             self.raise_error(e)
         return
     
-    def process(self)-> None:
+    def process(self, remeditate: bool)-> None:
         '''
         Perform all required ops on the table to prepare it
         '''
         try:
             self.select_required_columns()
-            self.set_data_types()
+            self.set_data_types(remediate=remeditate)
             self.pre_check()
             self.transform()
             self.check_NK()

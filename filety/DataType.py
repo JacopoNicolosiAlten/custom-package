@@ -1,6 +1,6 @@
 from __future__ import annotations
-import numbers
-from typing import List, Sequence, Any, Dict, Union
+import datetime
+from typing import List, Sequence, Any, Dict, Union, Mapping
 import re
 from typing_extensions import SupportsIndex
 import pandas as pd
@@ -27,8 +27,22 @@ class DataType(ABC):
 
     @property
     @abstractmethod
-    def na(self)-> Any:
+    def na(self):
         pass
+
+    @abstractmethod
+    def _convert(self, value: str)-> str:
+        pass
+
+    def convert(self, value: str)-> str:
+        if pd.isna(value):
+            return self.na
+        value = str(value)
+        return self._convert(value)
+
+    @property
+    def na(self)-> Any:
+        return self.dtype.na_value
 
     @property
     @abstractmethod
@@ -36,8 +50,20 @@ class DataType(ABC):
         pass
 
     @abstractmethod
-    def is_consistent(self, value: Scalar)-> bool:
+    def _check_constraint(self, str)-> bool:
         pass
+
+    def is_consistent(self, value: Scalar)-> bool:
+        try:
+            value = self.convert(value)
+        except (ValueError, TypeError):
+            return False
+        if value is self.na:
+            return True
+        elif not isinstance(value, str):
+            return False
+        else:
+            return self._check_constraint(value)
 
     def validate(self, value: Scalar)-> None:
         if not self.is_consistent(value):
@@ -70,8 +96,11 @@ class Varchar(DataType):
     def na(self):
         return pd.NA
     
-    def is_consistent(self, value: Scalar) -> bool:
-        return pd.isna(value) or (isinstance(value, str) and len(value) <= self._max_length)
+    def _convert(self, value: str) -> str:
+        return value
+    
+    def _check_constraint(self, value: str) -> bool:
+        return len(value) <= self._max_length
     
     def remediate(self, value: Scalar) -> Scalar:
         if pd.isna(value):
@@ -80,6 +109,7 @@ class Varchar(DataType):
             value = str(value)
         except:
             return value
+        value = re.sub(pattern='\s', repl=' ', string=value).strip(' ')
         return value[:min(len(value), self._max_length)]
     
 class Decimal(DataType):
@@ -108,7 +138,12 @@ class Decimal(DataType):
     
     @property
     def na(self):
-        return pd.NA
+        return np.nan
+    
+    def _convert(self, value: str) -> str:
+        value = self.format_string(value)
+        value = float(value)
+        return str(value)
     
     def format_string(self, string: str)-> str:
         if not self._comma_separated:
@@ -116,24 +151,68 @@ class Decimal(DataType):
         else:
             return string.replace('.', '').replace(',', '.')
     
-    def is_consistent(self, value: Scalar) -> bool:
-        if pd.isna(value):
-            return True
-        try:
-            value = str(value)
-            value = self.format_string(value)
-            float(value)
-        except:
-            return False
+    def _check_constraint(self, value: str) -> bool:
         return value.rstrip('0')[::-1].find('.') <= self._decimal_digits
     
     def remediate(self, value: Scalar) -> Scalar:
         if pd.isna(value):
-            return pd.NA
+            return self.na
         try:
             value = str(value)
             value = self.format_string(value)
             float(value)
         except:
             return value
-        return str(round(float(value), 2))
+        value = str(round(float(value), 2))
+        if self._comma_separated:
+            value = value.replace('.', ',')
+        return value
+
+class Float(Decimal):
+
+    def __init__(self, comma_separated: bool = False) -> None:
+        super().__init__(decimal_digits=53, comma_separated=comma_separated)
+
+class Date(DataType):
+
+    def __init__(self, format='%Y-%m-%d') -> None:
+        if not isinstance(format, str):
+            raise TypeError(f'max_length must be a int. Got {type(format)}.')
+        self._format = format
+
+    def __str__(self)-> str:
+        return f'date[{self._format}]'
+    
+    @property
+    def name(self)-> str:
+        str(self)
+    
+    @property
+    def dtype(self)-> Dtype:
+        return np.dtype('datetime64[D]')
+    
+    @property
+    def na(self):
+        return pd.NaT
+    
+    def _convert(self, value: str) -> str:
+        length = len(datetime.date(1,1,1).strftime(self._format))
+        value = value[:length]
+        value = datetime.datetime.strptime(value, self._format)
+        return value.strftime('%Y-%m-%d')
+    
+    def _check_constraint(self, value: str) -> bool:
+        return True
+    
+    def remediate(self, value: Scalar) -> Scalar:
+        if pd.isna(value):
+            return self.na
+        try:
+            value = str(value)
+            try:
+                value = pd.to_datetime(value, format=self._format, infer_datetime_format=False).strftime(self._format)
+            except:
+                value = pd.to_datetime(value, infer_datetime_format=True).strftime(self._format)
+        except:
+            return value
+        return value
