@@ -25,6 +25,10 @@ class DataType(ABC):
     def dtype(self)-> Dtype:
         pass
 
+    @abstractmethod
+    def set_dtype(self, column: pd.Series)-> pd.Series:
+        pass
+    
     @property
     @abstractmethod
     def na(self):
@@ -74,6 +78,11 @@ class DataType(ABC):
     def remediate(self, value: Scalar)-> Scalar:
         pass
 
+    @property
+    @abstractmethod
+    def remediation_description(self)-> str:
+        pass
+
 class Varchar(DataType):
 
     def __init__(self, max_length: int)-> None:
@@ -91,6 +100,9 @@ class Varchar(DataType):
     @property
     def dtype(self)-> Dtype:
         return pd.StringDtype()
+    
+    def set_dtype(self, column: pd.Series) -> pd.Series:
+        return column.astype(self.dtype)
     
     @property
     def na(self):
@@ -112,6 +124,10 @@ class Varchar(DataType):
         value = re.sub(pattern='\s', repl=' ', string=value).strip(' ')
         return value[:min(len(value), self._max_length)]
     
+    @property
+    def remediation_description(self) -> str:
+        return f'will be truncated to the first {self._max_length} characters excluding the starting spaces'
+
 class Decimal(DataType):
 
     def __init__(self, decimal_digits: int, comma_separated: bool = False)-> None:
@@ -135,6 +151,9 @@ class Decimal(DataType):
     @property
     def dtype(self)-> Dtype:
         return np.dtype('float64')
+    
+    def set_dtype(self, column: pd.Series) -> pd.Series:
+        return column.astype(self.dtype)
     
     @property
     def na(self):
@@ -163,10 +182,14 @@ class Decimal(DataType):
             float(value)
         except:
             return value
-        value = str(round(float(value), 2))
+        value = str(round(float(value), self._decimal_digits))
         if self._comma_separated:
             value = value.replace('.', ',')
         return value
+    
+    @property
+    def remediation_description(self) -> str:
+        return f'will be rounded to the decimal number {self._decimal_digits}'
 
 class Float(Decimal):
 
@@ -191,6 +214,9 @@ class Date(DataType):
     def dtype(self)-> Dtype:
         return np.dtype('datetime64[D]')
     
+    def set_dtype(self, column: pd.Series) -> pd.Series:
+        return pd.to_datetime(column, format='%Y-%m-%d')
+    
     @property
     def na(self):
         return pd.NaT
@@ -210,9 +236,13 @@ class Date(DataType):
         try:
             value = str(value)
             try:
-                value = pd.to_datetime(value, format=self._format, infer_datetime_format=False).strftime(self._format)
+                value = pd.to_datetime(value, format=self._format).strftime(self._format)
             except:
-                value = pd.to_datetime(value, infer_datetime_format=True).strftime(self._format)
+                value = pd.to_datetime(value).strftime(self._format)
         except:
             return value
         return value
+    
+    @property
+    def remediation_description(self) -> str:
+        return f'will be formatted according to {self._format} if a date pattern can be found'
