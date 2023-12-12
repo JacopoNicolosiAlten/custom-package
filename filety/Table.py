@@ -18,7 +18,9 @@ def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType],
     if remediate:
         msg = 'A remediation attempt will be performed:\n\t' + ';\n\t'.join([f'values in "{c}" {data_types[c].remediation_description}' for c in not_consistent_columns]) + '.'
         f_utils.info(msg)
-    return not not_consistent_df.any(axis=None)
+    consistency = not not_consistent_df.any(axis=None)
+    f_utils.info(consistency)
+    return consistency
 
 class FileCategory(UserString):
 
