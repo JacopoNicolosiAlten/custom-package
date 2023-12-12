@@ -10,15 +10,15 @@ from custom_package.filety import DataType as dt
 file_categories_set = set(file_categories_map.keys())
 
 def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType], remediate: bool)-> bool:
-        not_consistent_df = ~df.transform({c: d.is_consistent for (c, d) in data_types.items()}, axis='index')
-        not_consistent_columns = not_consistent_df.columns[not_consistent_df.any(axis='index')].tolist()
-        for c in not_consistent_columns:
-            msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + ('"' + df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '"; ').sum()
-            f_utils.warning(msg)
-        if remediate:
-            msg = 'A remediation attempt will be performed:\n\t' + ';\n\t'.join([f'values in "{c}" {data_types[c].remediation_description}' for c in not_consistent_columns]) + '.'
-            f_utils.info(msg)
-        return not not_consistent_df.any(axis=None)
+    not_consistent_df = ~df_utils.apply_elementwise_to_columns(df, {c: d.is_consistent for (c, d) in data_types.items()})
+    not_consistent_columns = not_consistent_df.columns[not_consistent_df.any(axis='index')].tolist()
+    for c in not_consistent_columns:
+        msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + ('"' + df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '"; ').sum()
+        f_utils.warning(msg)
+    if remediate:
+        msg = 'A remediation attempt will be performed:\n\t' + ';\n\t'.join([f'values in "{c}" {data_types[c].remediation_description}' for c in not_consistent_columns]) + '.'
+        f_utils.info(msg)
+    return not not_consistent_df.any(axis=None)
 
 class FileCategory(UserString):
 
@@ -125,12 +125,12 @@ class Table:
         data_types = self.get_category().get_data_types()
         consistency = _data_types_check_step(df=df, data_types=data_types, remediate=remediate)
         if remediate and not consistency:
-            df = df.transform({c: d.remediate for (c, d) in data_types.items()}, axis='index')
+            df = df_utils.apply_elementwise_to_columns(df, {c: d.remediate for (c, d) in data_types.items()}).copy()
             consistency = _data_types_check_step(df=df, data_types=data_types, remediate=False)
         if not consistency:
             raise exceptions.DataException('Unable to set the correct data types.')
-        df = df.transform({c: d.convert for (c, d) in data_types.items()}, axis='index')
-        converted_df = df.apply({c: d.set_dtype for (c, d) in data_types.items()}, axis=0)
+        df = df_utils.apply_elementwise_to_columns(df, {c: d.convert for (c, d) in data_types.items()}).copy()
+        converted_df = df.apply({c: d.set_dtype for (c, d) in data_types.items()}, axis=0).copy()
         self.set_DataFrame(converted_df)
         return
     
