@@ -200,7 +200,7 @@ class Date(DataType):
 
     def __init__(self, format='%Y-%m-%d') -> None:
         if not isinstance(format, str):
-            raise TypeError(f'max_length must be a int. Got {type(format)}.')
+            raise TypeError(f'format must be a string. Got {type(format)}.')
         self._format = format
 
     def __str__(self)-> str:
@@ -222,8 +222,8 @@ class Date(DataType):
         return pd.NaT
     
     def _convert(self, value: str) -> str:
-        length = len(datetime.date(1,1,1).strftime(self._format))
-        value = value[:length]
+        length = len(datetime.date(2000,10,10).strftime(self._format))
+        value = str(value)[:length]
         value = datetime.datetime.strptime(value, self._format)
         return value.strftime('%Y-%m-%d')
     
