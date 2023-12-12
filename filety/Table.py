@@ -196,13 +196,13 @@ class Table:
             self.raise_error(e)
         return
     
-    def process(self, remeditate: bool)-> None:
+    def process(self, remediate: bool)-> None:
         '''
         Perform all required ops on the table to prepare it
         '''
         try:
             self.select_required_columns()
-            self.set_data_types(remediate=remeditate)
+            self.set_data_types(remediate=remediate)
             self.pre_check()
             self.transform()
             self.check_NK()
