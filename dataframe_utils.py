@@ -1,5 +1,6 @@
 import pandas as pd
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Mapping
+from pandas._typing import Scalar
 from custom_package import exceptions
 
 def check_multiple_NK(df: pd.DataFrame, NK: List[str]) -> None:
@@ -39,4 +40,14 @@ def split_by_columns(df: pd.DataFrame, columns: List[str]) -> Dict[Tuple[str], p
         if c not in df.columns:
             raise KeyError(f'Trying to split a dataframe according to "{c}", which does not match any of its columns.')
         res = {k + (c + ':' + str(split),): df for k, v in res.items() for split, df in v.groupby(c)}
+    return res
+
+def apply_elementwise_to_columns(df: pd.DataFrame, functions: Dict[str, Mapping[Scalar, Scalar]])-> pd.DataFrame:
+    missing_columns = set(functions.keys()).difference(df.columns)
+    if len(missing_columns)>0:
+        msg = 'The following columns specifed as keys in the function dictionary could not be found in the DataFrame: "{}".'.format('", "'.join(missing_columns))
+        raise Exception(msg)
+    res = pd.DataFrame()
+    for column, function in functions.items():
+        res[column] = df[column].map(function)
     return res
