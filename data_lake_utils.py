@@ -54,7 +54,7 @@ def delete_files(file_system_client: dl.FileSystemClient, path: str) -> None:
     paths = file_system_client.get_paths(path)
     for p in paths:
         file_system_client.delete_file(p.name)
-    f_utils.info('The directory "{}" has been cleaned.'.format(path))
+    f_utils.info('"{}" has been cleaned.'.format(path.strip('/')))
     return
 
 def backup_files(file_system_client: dl.FileSystemClient, path: str, sink_dir: str, hierarchy: str='Ymd') -> None:
