@@ -181,7 +181,7 @@ class Decimal(DataType):
             value = self.format_string(value)
             float(value)
         except:
-            return value
+            return self.na
         value = str(round(float(value), self._decimal_digits))
         if self._comma_separated:
             value = value.replace('.', ',')
@@ -195,6 +195,9 @@ class Float(Decimal):
 
     def __init__(self, comma_separated: bool = False) -> None:
         super().__init__(decimal_digits=53, comma_separated=comma_separated)
+
+    def __str__(self)-> str:
+        return 'Float'
 
 class Date(DataType):
 
@@ -240,7 +243,7 @@ class Date(DataType):
             except:
                 value = pd.to_datetime(value).strftime(self._format)
         except:
-            return value
+            return self.na
         return value
     
     @property
