@@ -12,7 +12,7 @@ file_categories_set = set(file_categories_map.keys())
 def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType], remediate: bool)-> bool:
     not_consistent_df = ~df_utils.apply_elementwise_to_columns(df, {c: d.is_consistent for (c, d) in data_types.items()})
     not_consistent_columns = not_consistent_df.columns[not_consistent_df.any(axis='index')].tolist()
-    consistency = (len(not_consistent_columns)>0)
+    consistency = (len(not_consistent_columns)==0)
     if not consistency:
         for c in not_consistent_columns:
             msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + ('"' + df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '"; ').sum()
