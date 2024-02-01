@@ -80,13 +80,19 @@ class DataType(ABC):
 
 class Varchar(DataType):
 
-    def __init__(self, max_length: int)-> None:
+    def __init__(self, max_length: int, unspaced: bool=False)-> None:
         if not isinstance(max_length, int):
             raise TypeError(f'max_length must be a int. Got {type(max_length)}.')
+        if not isinstance(unspaced, bool):
+            raise TypeError(f'unspaced must be a bool. Got {type(unspaced)}.')
         self._max_length = max_length
+        self.unspaced = unspaced
 
     def __str__(self)-> str:
-        return f'varchar[{self._max_length}]'
+        name = f'varchar[{self._max_length}]'
+        if self.unspaced:
+            name = 'unspaced ' + name
+        return name
     
     @property
     def name(self)-> str:
@@ -117,11 +123,17 @@ class Varchar(DataType):
         except:
             return value
         value = re.sub(pattern='\s', repl=' ', string=value).strip(' ')
+        if self.unspaced:
+            value = value.replace(' ', '')
         return value[:min(len(value), self._max_length)]
     
     @property
     def remediation_description(self) -> str:
-        return f'will be truncated to the first {self._max_length} characters excluding the starting spaces'
+        description = f'will be truncated to the first {self._max_length} characters excluding the starting spaces'
+        if self.unspaced:
+            description = 'will be unspaced, then it ' + description
+        return description
+
 
 class Decimal(DataType):
 
