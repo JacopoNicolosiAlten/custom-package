@@ -129,9 +129,11 @@ class Varchar(DataType):
     
     @property
     def remediation_description(self) -> str:
-        description = f'will be truncated to the first {self._max_length} characters excluding the starting spaces'
+        description = f'will be truncated to the first {self._max_length} characters'
         if self.unspaced:
-            description = 'will be unspaced, then it ' + description
+            description = 'will be unspaced, then it ' + description + '.'
+        else:
+            description += ' excluding the starting spaces.'
         return description
 
 

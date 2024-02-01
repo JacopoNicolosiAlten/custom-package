@@ -18,7 +18,7 @@ def _data_types_check_step(df: pd.DataFrame, data_types: Dict[str, dt.DataType],
             msg = f'The following values in the column "{c}" are not suitable {data_types[c]}.' + '\n\t' + ('"' + df.loc[not_consistent_df[c], c].drop_duplicates().astype(str) + '"; ').sum()
             f_utils.warning(msg)
         if remediate:
-            msg = 'A remediation attempt will be performed:\n\t' + ';\n\t'.join([f'values in "{c}" {data_types[c].remediation_description}' for c in not_consistent_columns]) + '.'
+            msg = 'A remediation attempt will be performed:\n\t' + ';\n\t'.join([f'values in "{c}" {data_types[c].remediation_description}' for c in not_consistent_columns])
             f_utils.info(msg)
     return consistency
 
