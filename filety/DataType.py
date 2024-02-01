@@ -1,16 +1,11 @@
 from __future__ import annotations
 import datetime
-from typing import List, Sequence, Any, Dict, Union, Mapping
+from typing import Any
 import re
-from typing_extensions import SupportsIndex
 import pandas as pd
 import numpy as np
-from pandas._typing import Dtype, Scalar, ArrayLike
-from pandas.api.extensions import ExtensionDtype as ExtensionDtype, register_extension_dtype, ExtensionDtype, ExtensionArray
-from pandas.core.arrays import ExtensionArray
-from collections import UserString
+from pandas._typing import Dtype, Scalar
 from abc import ABC, abstractmethod
-import logging
 
 
 
@@ -189,7 +184,7 @@ class Decimal(DataType):
     
     @property
     def remediation_description(self) -> str:
-        return f'will be rounded to the decimal number {self._decimal_digits}'
+        return f'will be rounded to the decimal number {self._decimal_digits} if a number is recognized. The value will be dropped otherwise.'
 
 class Float(Decimal):
 
@@ -248,4 +243,4 @@ class Date(DataType):
     
     @property
     def remediation_description(self) -> str:
-        return f'will be formatted according to {self._format} if a date pattern can be found'
+        return f'will be formatted according to {self._format} if a date pattern can be found. The value will be dropped otherwise.'
