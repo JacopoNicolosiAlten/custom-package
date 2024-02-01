@@ -110,7 +110,7 @@ class Varchar(DataType):
         return pd.NA
     
     def _convert(self, value: str) -> str:
-        return value
+        return re.sub(pattern='\s+$', repl='', string=value)
     
     def _check_constraint(self, value: str) -> bool:
         return len(value) <= self._max_length
