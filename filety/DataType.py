@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime
-from typing import Any
+from typing import Any, Set
 import re
 import pandas as pd
 import numpy as np
@@ -14,6 +14,10 @@ class DataType(ABC):
     @abstractmethod
     def __str__(self)-> str:
         pass
+
+    @property
+    def name(self)-> str:
+        str(self)
 
     @property
     @abstractmethod
@@ -38,15 +42,6 @@ class DataType(ABC):
             return self.na
         value = str(value)
         return self._convert(value)
-
-    @property
-    def na(self)-> Any:
-        return self.dtype.na_value
-
-    @property
-    @abstractmethod
-    def name(self)-> str:
-        pass
 
     @abstractmethod
     def _check_constraint(self, str)-> bool:
@@ -95,10 +90,6 @@ class Varchar(DataType):
         return name
     
     @property
-    def name(self)-> str:
-        str(self)
-    
-    @property
     def dtype(self)-> Dtype:
         return pd.StringDtype()
     
@@ -136,7 +127,6 @@ class Varchar(DataType):
             description += ' excluding the starting spaces.'
         return description
 
-
 class Decimal(DataType):
 
     def __init__(self, decimal_digits: int, comma_separated: bool = False)-> None:
@@ -152,10 +142,6 @@ class Decimal(DataType):
         if self._comma_separated:
             string = 'comma-separated ' + string
         return string
-    
-    @property
-    def name(self)-> str:
-        str(self)
     
     @property
     def dtype(self)-> Dtype:
@@ -219,10 +205,6 @@ class Date(DataType):
         return f'date[{self._format}]'
     
     @property
-    def name(self)-> str:
-        str(self)
-    
-    @property
     def dtype(self)-> Dtype:
         return np.dtype('datetime64[D]')
     
@@ -258,3 +240,38 @@ class Date(DataType):
     @property
     def remediation_description(self) -> str:
         return f'will be formatted according to {self._format} if a date pattern can be found. The value will be dropped otherwise.'
+    
+class Categorical(DataType):
+    def __init__(self, value_set: Set[str])-> None:
+        if not isinstance(value_set, set) or sum([not isinstance(value, str) for value in value_set]) > 0:
+            raise ValueError('value set must be a set of strings.')
+        self.value_set = {value.lower() for value in value_set}
+
+    def __str__(self)-> str:
+        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)))
+        return name
+
+    @property
+    def dtype(self)-> Dtype:
+        return pd.StringDtype()
+
+    def set_dtype(self, column: pd.Series)-> pd.Series:
+        return column.astype(self.dtype)
+    
+    @property
+    def na(self):
+        return pd.NA
+
+    def _convert(self, value: str)-> str:
+        return value.lower()
+
+    def _check_constraint(self, str)-> bool:
+        return str in self.value_set
+
+    def remediate(self, value: Scalar)-> Scalar:
+        value = re.sub('\s', '', value).strip(' ')
+        return value
+
+    @property
+    def remediation_description(self)-> str:
+        return "will be cleaned from leading and trailing spaces."
