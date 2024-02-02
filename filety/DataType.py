@@ -38,7 +38,7 @@ class DataType(ABC):
         pass
 
     def convert(self, value: str)-> str:
-        if pd.isna(value):
+        if pd.isna(value) or value is self.na:
             return self.na
         value = str(value)
         return self._convert(value)
@@ -242,10 +242,14 @@ class Date(DataType):
         return f'will be formatted according to {self._format} if a date pattern can be found. The value will be dropped otherwise.'
     
 class Categorical(DataType):
-    def __init__(self, value_set: Set[str])-> None:
+    def __init__(self, value_set: Set[str], default: str)-> None:
         if not isinstance(value_set, set) or sum([not isinstance(value, str) for value in value_set]) > 0:
             raise ValueError('value set must be a set of strings.')
-        self.value_set = {value.lower() for value in value_set}
+        if not isinstance(default, str):
+            raise ValueError('defatul should be a string')
+        default = default.lower()
+        self.value_set = {value.lower() for value in value_set}.add(default)
+        self.default = default
 
     def __str__(self)-> str:
         name = 'Categorical[{}]'.format(', '.join(list(self.value_set)))
@@ -260,7 +264,7 @@ class Categorical(DataType):
     
     @property
     def na(self):
-        return pd.NA
+        return self.default
 
     def _convert(self, value: str)-> str:
         return value.lower()
@@ -270,8 +274,10 @@ class Categorical(DataType):
 
     def remediate(self, value: Scalar)-> Scalar:
         value = re.sub('\s', '', value).strip(' ')
+        if value not in self.value_set:
+            value = self.default
         return value
 
     @property
     def remediation_description(self)-> str:
-        return "will be cleaned from leading and trailing spaces."
+        return f'will be cleaned from leading and trailing spaces. If not category matches, the default "{self.default}" will be used.'
