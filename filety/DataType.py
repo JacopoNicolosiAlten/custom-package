@@ -1,16 +1,11 @@
 from __future__ import annotations
 import datetime
-from typing import List, Sequence, Any, Dict, Union, Mapping
+from typing import Any, Set
 import re
-from typing_extensions import SupportsIndex
 import pandas as pd
 import numpy as np
-from pandas._typing import Dtype, Scalar, ArrayLike
-from pandas.api.extensions import ExtensionDtype as ExtensionDtype, register_extension_dtype, ExtensionDtype, ExtensionArray
-from pandas.core.arrays import ExtensionArray
-from collections import UserString
+from pandas._typing import Dtype, Scalar
 from abc import ABC, abstractmethod
-import logging
 
 
 
@@ -19,6 +14,10 @@ class DataType(ABC):
     @abstractmethod
     def __str__(self)-> str:
         pass
+
+    @property
+    def name(self)-> str:
+        str(self)
 
     @property
     @abstractmethod
@@ -43,15 +42,6 @@ class DataType(ABC):
             return self.na
         value = str(value)
         return self._convert(value)
-
-    @property
-    def na(self)-> Any:
-        return self.dtype.na_value
-
-    @property
-    @abstractmethod
-    def name(self)-> str:
-        pass
 
     @abstractmethod
     def _check_constraint(self, str)-> bool:
@@ -85,17 +75,19 @@ class DataType(ABC):
 
 class Varchar(DataType):
 
-    def __init__(self, max_length: int)-> None:
+    def __init__(self, max_length: int, unspaced: bool=False)-> None:
         if not isinstance(max_length, int):
             raise TypeError(f'max_length must be a int. Got {type(max_length)}.')
+        if not isinstance(unspaced, bool):
+            raise TypeError(f'unspaced must be a bool. Got {type(unspaced)}.')
         self._max_length = max_length
+        self.unspaced = unspaced
 
     def __str__(self)-> str:
-        return f'varchar[{self._max_length}]'
-    
-    @property
-    def name(self)-> str:
-        str(self)
+        name = f'varchar[{self._max_length}]'
+        if self.unspaced:
+            name = 'unspaced ' + name
+        return name
     
     @property
     def dtype(self)-> Dtype:
@@ -109,7 +101,7 @@ class Varchar(DataType):
         return pd.NA
     
     def _convert(self, value: str) -> str:
-        return value
+        return re.sub(pattern='\s+$', repl='', string=value)
     
     def _check_constraint(self, value: str) -> bool:
         return len(value) <= self._max_length
@@ -122,11 +114,18 @@ class Varchar(DataType):
         except:
             return value
         value = re.sub(pattern='\s', repl=' ', string=value).strip(' ')
+        if self.unspaced:
+            value = value.replace(' ', '')
         return value[:min(len(value), self._max_length)]
     
     @property
     def remediation_description(self) -> str:
-        return f'will be truncated to the first {self._max_length} characters excluding the starting spaces'
+        description = f'will be truncated to the first {self._max_length} characters'
+        if self.unspaced:
+            description = 'will be unspaced, then it ' + description + '.'
+        else:
+            description += ' excluding the starting spaces.'
+        return description
 
 class Decimal(DataType):
 
@@ -143,10 +142,6 @@ class Decimal(DataType):
         if self._comma_separated:
             string = 'comma-separated ' + string
         return string
-    
-    @property
-    def name(self)-> str:
-        str(self)
     
     @property
     def dtype(self)-> Dtype:
@@ -189,7 +184,7 @@ class Decimal(DataType):
     
     @property
     def remediation_description(self) -> str:
-        return f'will be rounded to the decimal number {self._decimal_digits}'
+        return f'will be rounded to the decimal number {self._decimal_digits} if a number is recognized. The value will be dropped otherwise.'
 
 class Float(Decimal):
 
@@ -208,10 +203,6 @@ class Date(DataType):
 
     def __str__(self)-> str:
         return f'date[{self._format}]'
-    
-    @property
-    def name(self)-> str:
-        str(self)
     
     @property
     def dtype(self)-> Dtype:
@@ -248,4 +239,39 @@ class Date(DataType):
     
     @property
     def remediation_description(self) -> str:
-        return f'will be formatted according to {self._format} if a date pattern can be found'
+        return f'will be formatted according to {self._format} if a date pattern can be found. The value will be dropped otherwise.'
+    
+class Categorical(DataType):
+    def __init__(self, value_set: Set[str])-> None:
+        if not isinstance(value_set, set) or sum([not isinstance(value, str) for value in value_set]) > 0:
+            raise ValueError('value set must be a set of strings.')
+        self.value_set = {value.lower() for value in value_set}
+
+    def __str__(self)-> str:
+        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)))
+        return name
+
+    @property
+    def dtype(self)-> Dtype:
+        return pd.StringDtype()
+
+    def set_dtype(self, column: pd.Series)-> pd.Series:
+        return column.astype(self.dtype)
+    
+    @property
+    def na(self):
+        return pd.NA
+
+    def _convert(self, value: str)-> str:
+        return value.lower()
+
+    def _check_constraint(self, str)-> bool:
+        return str in self.value_set
+
+    def remediate(self, value: Scalar)-> Scalar:
+        value = re.sub('\s', '', value).strip(' ')
+        return value
+
+    @property
+    def remediation_description(self)-> str:
+        return "will be cleaned from leading and trailing spaces."
