@@ -1,6 +1,6 @@
 from __future__ import annotations
 import datetime
-from typing import Any, Set
+from typing import Any, Set, Callable
 import re
 import pandas as pd
 import numpy as np
@@ -242,14 +242,16 @@ class Date(DataType):
         return f'will be formatted according to {self._format} if a date pattern can be found. The value will be dropped otherwise.'
     
 class Categorical(DataType):
-    def __init__(self, value_set: Set[str], default: str)-> None:
+    def __init__(self, value_set: Set[str], default: str, formatting: Callable[[str], str])-> None:
         if not isinstance(value_set, set) or sum([not isinstance(value, str) for value in value_set]) > 0:
             raise ValueError('value set must be a set of strings.')
-        if not isinstance(default, str):
-            raise ValueError('defatul should be a string')
-        default = default.lower()
-        self.value_set = {value.lower() for value in value_set}.add(default)
+        if not (isinstance(default, str) or pd.isna(default)):
+            raise ValueError('defatult should be a string')
+        if pd.notna(default):
+            default = formatting(default)
+        self.value_set = {formatting(value) for value in value_set}.union({default})
         self.default = default
+        self.formatting = formatting
 
     def __str__(self)-> str:
         name = 'Categorical[{}]'.format(', '.join(list(self.value_set)))
@@ -267,7 +269,7 @@ class Categorical(DataType):
         return self.default
 
     def _convert(self, value: str)-> str:
-        return value.lower()
+        return self.formatting(value)
 
     def _check_constraint(self, str)-> bool:
         return str in self.value_set
