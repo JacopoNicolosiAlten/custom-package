@@ -18,7 +18,7 @@ def get_container(storage_account_name: str, container_name: str) -> dl.FileSyst
         # prompt for interactive login authentication if run on localhost
         key = InteractiveBrowserCredential()
         connection_verify=False
-    return dl.DataLakeServiceClient(account_url="https://{}.dfs.core.windows.net"\
+    return dl.DataLakeServiceClient(account_url="https://{}.dfs.core.windows.net/"\
             .format(storage_account_name), credential=key, connection_verify=connection_verify)\
         .get_file_system_client(file_system=container_name)
 

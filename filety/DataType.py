@@ -249,12 +249,12 @@ class Categorical(DataType):
             raise ValueError('defatult should be a string')
         if pd.notna(default):
             default = formatting(default)
-        self.value_set = {formatting(value) for value in value_set}.union({default})
+        self.value_set = {formatting(value) for value in value_set}
         self.default = default
         self.formatting = formatting
 
     def __str__(self)-> str:
-        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)))
+        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)) + ', ' + 'NULL' if pd.isna(self.default) else self.default)
         return name
 
     @property
@@ -275,6 +275,8 @@ class Categorical(DataType):
         return str in self.value_set
 
     def remediate(self, value: Scalar)-> Scalar:
+        if value is self.na or pd.isna(value):
+            return self.na
         value = re.sub('\s', '', value).strip(' ')
         if value not in self.value_set:
             value = self.default
