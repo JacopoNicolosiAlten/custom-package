@@ -92,7 +92,7 @@ class Table:
         return self._name
     
     def get_columns(self) -> Set[str]:
-        return set(self._DataFrame.columns)
+        return set(self._df.columns)
     
     def get_csv_bytes(self)-> bytes:
         '''
