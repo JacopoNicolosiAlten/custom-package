@@ -17,7 +17,7 @@ class DataType(ABC):
 
     @property
     def name(self)-> str:
-        str(self)
+        return str(self)
 
     @property
     @abstractmethod
@@ -52,9 +52,7 @@ class DataType(ABC):
             value = self.convert(value)
         except (ValueError, TypeError):
             return False
-        if pd.isna(self.na) and (value is self.na):
-            return True
-        elif pd.notna(self.na) and (value == self.na):
+        if (value is self.na) or (pd.notna(self.na) and pd.notna(value) and value == self.na):
             return True
         elif not isinstance(value, str):
             return False
@@ -158,7 +156,7 @@ class Decimal(DataType):
     
     def _convert(self, value: str) -> str:
         value = self.format_string(value)
-        value = float(value)
+        value = round(float(value), self._decimal_digits)
         return str(value)
     
     def format_string(self, string: str)-> str:
@@ -273,8 +271,8 @@ class Categorical(DataType):
     def _convert(self, value: str)-> str:
         return self.formatting(value)
 
-    def _check_constraint(self, str)-> bool:
-        return str in self.value_set
+    def _check_constraint(self, value: str)-> bool:
+        return value in self.value_set
 
     def remediate(self, value: Scalar)-> Scalar:
         if value is self.na or pd.isna(value):
@@ -287,3 +285,51 @@ class Categorical(DataType):
     @property
     def remediation_description(self)-> str:
         return f'will be cleaned from leading and trailing spaces. If not category matches, the default "{self.default}" will be used.'
+    
+class Percentage(DataType):
+    def __init__(self, hundreds: bool=False) -> None:
+        if not isinstance(hundreds, bool):
+            raise ValueError("hundreds must be bool, got {}.".format(type(hundreds)))
+        self.hundreds = hundreds
+
+    def __str__(self)-> str:
+        name = 'Percentage[{}]'.format('100' if self.hundreds else '1')
+        return name
+
+    @property
+    def dtype(self)-> Dtype:
+        return np.dtype('float64')
+
+    def set_dtype(self, column: pd.Series)-> pd.Series:
+        return column.astype(self.dtype)
+    
+    @property
+    def na(self):
+        return np.nan
+
+    def _convert(self, value: str)-> str:
+        value = float(value)
+        if self.hundreds:
+            value = value/100
+        value = round(value, 10)
+        return str(value)
+
+    def _check_constraint(self, value: str)-> bool:
+        value = float(value)
+        return value >= 0 and value <= 1
+
+    def remediate(self, value: Scalar)-> Scalar:
+        if value < 0:
+            value = 0
+        elif value > 1:
+            if not self.hundreds:
+                value = round(value/100, 10)
+        return value
+
+    @property
+    def remediation_description(self)-> str:
+        description = 'will be replaced with 0 if negative.'
+        if not self.hundreds:
+            description += ' It will be divided by 100 if greater than 1.'
+        return description
+    

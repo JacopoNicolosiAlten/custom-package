@@ -13,13 +13,11 @@ def get_container(storage_account_name: str, container_name: str) -> dl.FileSyst
     '''
     if os.getenv('MSI_SECRET'):
         key = ManagedIdentityCredential()
-        connection_verify=True
     else:
         # prompt for interactive login authentication if run on localhost
         key = InteractiveBrowserCredential()
-        connection_verify=True
     return dl.DataLakeServiceClient(account_url="https://{}.dfs.core.windows.net/"\
-            .format(storage_account_name), credential=key, connection_verify=connection_verify)\
+            .format(storage_account_name), credential=key)\
         .get_file_system_client(file_system=container_name)
 
 def clear_directory(file_system_client: dl.FileSystemClient, dir: str) -> None:

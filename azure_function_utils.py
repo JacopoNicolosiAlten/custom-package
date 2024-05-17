@@ -14,7 +14,10 @@ def initialize_logger(stream: io.StringIO) -> None:
     Initialize the logger to collect logs in the given stream.
     '''
     logger = logging.getLogger('logger')
-    logger.addHandler(logging.StreamHandler(stream))
+    handler = logging.StreamHandler(stream)
+    handler.terminator = '\n'
+    handler.setFormatter(logging.Formatter(fmt='%(levelname)s: %(message)s'))
+    logger.addHandler(handler)
     logger.setLevel('INFO')
 
 def warning(message: str) -> None:
