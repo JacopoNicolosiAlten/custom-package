@@ -52,7 +52,9 @@ class DataType(ABC):
             value = self.convert(value)
         except (ValueError, TypeError):
             return False
-        if value is self.na:
+        if pd.isna(self.na) and (value is self.na):
+            return True
+        elif pd.notna(self.na) and (value == self.na):
             return True
         elif not isinstance(value, str):
             return False
@@ -254,7 +256,7 @@ class Categorical(DataType):
         self.formatting = formatting
 
     def __str__(self)-> str:
-        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)) + ', ' + 'NULL' if pd.isna(self.default) else self.default)
+        name = 'Categorical[{}]'.format(', '.join(list(self.value_set)) + ', ' + ('NULL' if pd.isna(self.default) else self.default))
         return name
 
     @property
