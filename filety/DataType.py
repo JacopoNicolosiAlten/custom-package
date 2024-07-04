@@ -278,6 +278,7 @@ class Categorical(DataType):
         if value is self.na or pd.isna(value):
             return self.na
         value = re.sub('\s', '', value).strip(' ')
+        value = self.convert(value)
         if value not in self.value_set:
             value = self.default
         return value
