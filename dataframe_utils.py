@@ -16,7 +16,7 @@ def check_multiple_NK(df: pd.DataFrame, NK: List[str]) -> None:
         message = 'The table contains multiple rows for the following tuples "'\
             + '"/"'.join(NK)\
             + '". This is not allowed because they are used as the key identifier.\n'\
-            + ('\t' + NK_check[NK].apply(lambda r: '/'.join(r.tolist()), axis='columns') + ': ' + NK_check['Count'].astype(str) + ' rows.\n').sum()
+            + ('\t' + NK_check[NK].apply(lambda r: '/'.join(r.astype(str).tolist()), axis='columns') + ': ' + NK_check['Count'].astype(str) + ' rows.\n').sum()
         raise exceptions.DataException(message)
     return
 
